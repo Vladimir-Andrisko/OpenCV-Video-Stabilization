@@ -1,0 +1,19 @@
+{
+    "featureDetection":{
+        "max_corners": 10,
+        "quality_level": 0.3,
+        "min_distance": 50.0,
+        "block_size": 9,
+        "gradient_size": 3,
+        "use_harris_detector": false
+    },
+
+    "fast":{
+        "threshold": 75
+    },
+
+    "filter":{
+        "moving_average_radius": 1,
+        "zoom": 1.04
+    }
+}
