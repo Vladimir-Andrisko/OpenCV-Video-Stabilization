@@ -1,17 +1,26 @@
-import cv2
-import numpy as np
 from . import offlineVideoStabilization as offVS, optimizationVideoStabilization as optVS
 from config.loader import load_config
-from matplotlib import pyplot as plt
 
-INPUT_VIDEO = "unstable_videos/videoplayback.mp4"
-OUTPUT_VIDEO = "output/output_optimization2.avi"
+INPUT_DIR = "unstable_videos/"
+OUTPUT_DIR = "output/"
 cfg = load_config("config/config.json")
 
 def main():
-    print("OpenCV version: " + cv2.__version__)
-    offVS.stabilize(INPUT_VIDEO, OUTPUT_VIDEO, cfg, feature_detection=offVS.featureDetection.FAST, filter=offVS.Filter.Gauss)
-    #optVS.stabilize(INPUT_VIDEO, OUTPUT_VIDEO, cfg, feature_detection=optVS.featureDetection.ORB)
+    with open('videosConfig.txt', 'r') as f:
+	    input_videos = f.read().split()
+
+    for input_video in input_videos:
+        output_video = "out_" + input_video
+        stabilize(str(INPUT_DIR+input_video), str(OUTPUT_DIR+output_video), cfg, cfg.feature_type.FAST, cfg.filter_type.Gauss, optimal=True)
+        
+
+def stabilize(input, output, cfg, feature, filter, optimal=False):
+    print(f"Offline stabilization with: {filter}, filter and {feature} featureDetection")
+    offVS.stabilize(input, output, cfg, feature_detection=feature, filter=filter)
+    if optimal:
+        print(f"Optimal stabilization with: {feature} featureDetection")
+        optVS.stabilize(input, output, cfg, feature_detection=feature)
 
 if __name__ == "__main__":
     main()
+

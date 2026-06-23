@@ -1,18 +1,12 @@
 import cv2
 import numpy as np
 from . import videoStabilizationHelper
-from enum import Enum
 import cvxpy as cp
 import matplotlib.pyplot as plt
 
 PRINT_DELAY = 500
 
-class featureDetection(Enum):
-    ShiTomasi = 0,
-    FAST = 1,
-    ORB = 2
-
-def stabilize(input, output, config, debug=False, feature_detection=featureDetection.ShiTomasi):
+def stabilize(input, output, config, feature_detection, debug=False):
     cap = cv2.VideoCapture(input)
 
     if not cap.isOpened():
@@ -27,6 +21,7 @@ def stabilize(input, output, config, debug=False, feature_detection=featureDetec
     frame_period = int(1000/fps)
 
     fourcc = cv2.VideoWriter_fourcc(*'MJPG')
+    output = output.split(".")[0] + "_optimal.avi"
     writer = cv2.VideoWriter(output, fourcc, fps, (width, height))
 
     if not writer.isOpened():
@@ -58,16 +53,16 @@ def stabilize(input, output, config, debug=False, feature_detection=featureDetec
     orb = videoStabilizationHelper.setupORB(config)
 
     for i in range(n_frames-2):
-        if feature_detection == featureDetection.ShiTomasi:
+        if feature_detection == config.feature_type.ShiTomasi:
             prev_pts = cv2.goodFeaturesToTrack(prev_gray, 
                 maxCorners=max_corners, qualityLevel=quality_level, 
                 minDistance=min_distance, blockSize=block_size
             )
-        elif feature_detection == featureDetection.ORB:
+        elif feature_detection == config.feature_type.ORB:
             kp_prev = orb.detect(prev_gray, None)
             prev_pts = cv2.KeyPoint_convert(kp_prev)
             prev_pts = prev_pts.reshape(-1, 1, 2).astype(np.float32)
-        elif feature_detection == featureDetection.FAST:
+        elif feature_detection == config.feature_type.FAST:
             kp_prev = fast.detect(prev_gray, None)
             prev_pts = cv2.KeyPoint_convert(kp_prev)
             prev_pts = prev_pts.reshape(-1, 1, 2).astype(np.float32)
@@ -105,7 +100,7 @@ def stabilize(input, output, config, debug=False, feature_detection=featureDetec
         transforms[2].append(da) 
         prev_gray = curr_gray
 
-        if i % int(fps+1) == 0:
+        if i % PRINT_DELAY == 0:
             print("Frame: " + str(i) +  "/" + str(n_frames) + " - Tracked points : " + str(len(prev_pts)))
 
     lbd1 = 10000
@@ -122,17 +117,10 @@ def stabilize(input, output, config, debug=False, feature_detection=featureDetec
                    cp.abs(fy-trajectory[1]) <= max_translation,
                    cp.abs(fa-trajectory[2]) <= max_rotation]
 
-    obj = 0																																																																																								
-    for i in range(np.size(trajectory[0])):
-        obj = (cp.sum_squares(fx - trajectory[0]) + cp.sum_squares(fy - trajectory[1]) + cp.sum_squares(fa - trajectory[2]))
-
-    # DP1
-    for i in range(np.size(trajectory[0])-1):
-        obj += lbd1 * (cp.norm1(fx[1:] - fx[:-1]) + cp.norm1(fy[1:] - fy[:-1]) + cp.norm1(fa[1:] - fa[:-1]))
-
-    # DP2
-    for i in range(np.size(trajectory[0])-2):
-        obj += lbd2 * (cp.norm1(fx[2:] - 2*fx[1:-1] + fx[:-2]) + cp.norm1(fy[2:] - 2*fy[1:-1] + fy[:-2]) + cp.norm1(fa[2:] - 2*fa[1:-1] + fa[:-2]))
+    obj = 0
+    obj = (cp.sum_squares(fx - trajectory[0]) + cp.sum_squares(fy - trajectory[1]) + cp.sum_squares(fa - trajectory[2]))
+    obj += lbd1 * (cp.norm1(fx[1:] - fx[:-1]) + cp.norm1(fy[1:] - fy[:-1]) + cp.norm1(fa[1:] - fa[:-1]))
+    obj += lbd2 * (cp.norm1(fx[2:] - 2*fx[1:-1] + fx[:-2]) + cp.norm1(fy[2:] - 2*fy[1:-1] + fy[:-2]) + cp.norm1(fa[2:] - 2*fa[1:-1] + fa[:-2]))
 
     prob = cp.Problem(cp.Minimize(obj), constraints)
     print("Startet solving the optimization problem")
@@ -187,7 +175,10 @@ def stabilize(input, output, config, debug=False, feature_detection=featureDetec
 
         plt.tight_layout()
 
-    plt.savefig("optimal_plot.png", dpi=300, bbox_inches="tight")
+    output = output.split("/")[1]
+    output = output.split(".")[0]
+    output = "plots/" + output
+    plt.savefig(str(output + ".png"), dpi=300, bbox_inches="tight")
 
     cap.release()
     writer.release()

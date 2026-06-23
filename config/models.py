@@ -1,4 +1,16 @@
 from dataclasses import dataclass, field
+from enum import Enum
+
+class Feature(Enum):
+    ShiTomasi = 0
+    FAST = 1
+    ORB = 2
+
+class Filter(Enum):
+    MoovingAverage = 0
+    Gauss = 1
+    Savgol = 2
+    LowPass = 3
 
 @dataclass
 class Config:
@@ -40,6 +52,9 @@ class orbConfig:
 
 @dataclass
 class pipelineConfig:
+    feature_type: Feature = Feature.ShiTomasi
+    filter_type: Filter = Filter.MoovingAverage
+
     config: Config = field(
         default_factory=Config
     )

@@ -1,5 +1,4 @@
 import json
-
 from config.models import (
     Config,
     featureDetectionConfig,

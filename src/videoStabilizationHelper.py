@@ -100,7 +100,7 @@ def calculateM(dx, dy, da):
 
     return m
 
-def plotTrajectory(trajectory, smooth_trajectory):
+def plotTrajectory(trajectory, smooth_trajectory, plotname):
     labels = ["dx", "dy", "da"]
     fig, axes = plt.subplots(3, 1, figsize=(14, 10))
 
@@ -117,7 +117,7 @@ def plotTrajectory(trajectory, smooth_trajectory):
 
         plt.tight_layout()
 
-    plt.savefig("trajectory_plot.png", dpi=300, bbox_inches="tight")
+    plt.savefig(str(plotname + ".png"), dpi=300, bbox_inches="tight")
 
 def setupORB(config):
     orb_nFeatures = config.orb.nfeatures

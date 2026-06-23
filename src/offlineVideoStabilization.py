@@ -1,24 +1,10 @@
 import cv2
 import numpy as np
 from . import videoStabilizationHelper
-from enum import Enum
 
 PRINT_DELAY = 500
-MAX_TRANS = 40
-MAX_ROT = 0.2
 
-class featureDetection(Enum):
-    ShiTomasi = 0,
-    FAST = 1,
-    ORB = 2
-
-class Filter(Enum):
-    MoovingAverage = 0,
-    Gauss = 1,
-    Savgol = 2,
-    LowPass = 3
-
-def stabilize(input, output, config, debug=False, feature_detection=featureDetection.ShiTomasi, filter=Filter.MoovingAverage):
+def stabilize(input, output, config, feature_detection, filter, debug=False):
     cap = cv2.VideoCapture(input)
 
     if not cap.isOpened():
@@ -71,16 +57,16 @@ def stabilize(input, output, config, debug=False, feature_detection=featureDetec
     orb = videoStabilizationHelper.setupORB(config)
 
     for i in range(n_frames-2):
-        if feature_detection == featureDetection.ShiTomasi:
+        if feature_detection == config.feature_type.ShiTomasi:
             prev_pts = cv2.goodFeaturesToTrack(prev_gray, 
                 maxCorners=max_corners, qualityLevel=quality_level, 
                 minDistance=min_distance, blockSize=block_size
             )
-        elif feature_detection == featureDetection.ORB:
+        elif feature_detection == config.feature_type.ORB:
             kp_prev = orb.detect(prev_gray, None)
             prev_pts = cv2.KeyPoint_convert(kp_prev)
             prev_pts = prev_pts.reshape(-1, 1, 2).astype(np.float32)
-        elif feature_detection == featureDetection.FAST:
+        elif feature_detection == config.feature_type.FAST:
             kp_prev = fast.detect(prev_gray, None)
             prev_pts = cv2.KeyPoint_convert(kp_prev)
             prev_pts = prev_pts.reshape(-1, 1, 2).astype(np.float32)
@@ -116,7 +102,7 @@ def stabilize(input, output, config, debug=False, feature_detection=featureDetec
         transforms[i] = [float(dx), float(dy), float(da)]
         prev_gray = curr_gray
 
-        if i % int(fps+1) == 0:
+        if i % int(PRINT_DELAY) == 0:
             print("Frame: " + str(i) +  "/" + str(n_frames) + " - Tracked points : " + str(len(prev_pts)))
 
         trajectory = np.cumsum(transforms, axis=0)
@@ -124,16 +110,16 @@ def stabilize(input, output, config, debug=False, feature_detection=featureDetec
         xy = trajectory[:, :2]   # dx, dy
         rot = trajectory[:, 2:]  # da
 
-        if filter == Filter.MoovingAverage:
+        if filter == config.filter_type.MoovingAverage:
             smooth_xy = videoStabilizationHelper.smoothAverage(xy, moovingRadius)
             smooth_angle = videoStabilizationHelper.smoothAverage(rot, moovingRadius)
-        elif filter == Filter.Gauss:
+        elif filter == config.filter_type.Gauss:
             smooth_xy = videoStabilizationHelper.smoothGauss(xy, gaussRadius, gaussSigma)
             smooth_angle = videoStabilizationHelper.smoothGauss(rot, gaussRadius, gaussSigma)
-        elif filter == Filter.Savgol:
+        elif filter == config.filter_type.Savgol:
             smooth_xy = videoStabilizationHelper.smoothSavgol(xy, savgolWindow, savgolPoly)
             smooth_angle = videoStabilizationHelper.smoothSavgol(rot, savgolWindow, savgolPoly)
-        elif filter == Filter.LowPass:
+        elif filter == config.filter_type.LowPass:
             smooth_xy = videoStabilizationHelper.lowpass(xy)
             smooth_angle = videoStabilizationHelper.lowpass(rot)
         else:
@@ -178,7 +164,10 @@ def stabilize(input, output, config, debug=False, feature_detection=featureDetec
 
         writer.write(frame_stabilized)
 
-    videoStabilizationHelper.plotTrajectory(trajectory, smooth_trajectory)
+    output = output.split("/")[1]
+    output = output.split(".")[0]
+    output = "plots/" + output
+    videoStabilizationHelper.plotTrajectory(trajectory, smooth_trajectory, output)
     
     cap.release()
     writer.release()
