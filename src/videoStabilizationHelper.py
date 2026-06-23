@@ -118,3 +118,27 @@ def plotTrajectory(trajectory, smooth_trajectory):
         plt.tight_layout()
 
     plt.savefig("trajectory_plot.png", dpi=300, bbox_inches="tight")
+
+def setupORB(config):
+    orb_nFeatures = config.orb.nfeatures
+    orb_scaleFactor = config.orb.scaleFactor
+    orb_nlevels = config.orb.nlevels
+    orb_edgeThreshold = config.orb.edgeThreshold
+    orb_firstLevel = config.orb.firstLevel
+    orb_WTA_K = config.orb.WTA_K
+    orb_patchSize = config.orb.patchSize
+    orb_fastThreshold = config.orb.fastThreshold
+
+    orb = cv2.ORB_create(
+        nfeatures=orb_nFeatures, scaleFactor=orb_scaleFactor, nlevels=orb_nlevels,
+        edgeThreshold=orb_edgeThreshold, firstLevel=orb_firstLevel, WTA_K=orb_WTA_K,
+        patchSize=orb_patchSize, fastThreshold=orb_fastThreshold
+    )
+    return orb
+
+def setupShiTomasi(config):
+    pass
+
+def setupFast(config):
+    threshold = config.fast.threshold
+    return cv2.FastFeatureDetector_create(threshold=threshold)

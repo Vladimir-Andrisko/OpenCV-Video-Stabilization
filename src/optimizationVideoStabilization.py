@@ -2,23 +2,17 @@ import cv2
 import numpy as np
 from . import videoStabilizationHelper
 from enum import Enum
+import cvxpy as cp
+import matplotlib.pyplot as plt
 
 PRINT_DELAY = 500
-MAX_TRANS = 40
-MAX_ROT = 0.2
 
 class featureDetection(Enum):
     ShiTomasi = 0,
     FAST = 1,
     ORB = 2
 
-class Filter(Enum):
-    MoovingAverage = 0,
-    Gauss = 1,
-    Savgol = 2,
-    LowPass = 3
-
-def stabilize(input, output, config, debug=False, feature_detection=featureDetection.ShiTomasi, filter=Filter.MoovingAverage):
+def stabilize(input, output, config, debug=False, feature_detection=featureDetection.ShiTomasi):
     cap = cv2.VideoCapture(input)
 
     if not cap.isOpened():
@@ -47,7 +41,7 @@ def stabilize(input, output, config, debug=False, feature_detection=featureDetec
         return
 
     prev_gray = cv2.cvtColor(prev, cv2.COLOR_BGR2GRAY)
-    transforms = np.zeros((n_frames-1, 3), np.float32)
+    transforms = [[], [], []]
     debug_points = []
 
     ## ShiTomasi
@@ -55,13 +49,6 @@ def stabilize(input, output, config, debug=False, feature_detection=featureDetec
     quality_level = config.featureDetection.quality_level
     min_distance = config.featureDetection.min_distance
     block_size = config.featureDetection.block_size
-
-    ## Filter
-    moovingRadius = config.filter.moving_average_radius
-    gaussRadius = config.filter.gauss_radius
-    gaussSigma = config.filter.gauss_sigma
-    savgolWindow = config.filter.savgol_window
-    savgolPoly = config.filter.savgol_poly
 
     zoom = config.config.zoom
     max_translation = config.config.max_translation
@@ -113,53 +100,59 @@ def stabilize(input, output, config, debug=False, feature_detection=featureDetec
         dy = m[1, 2]
         da = np.arctan2(m[1, 0], m[0, 0])
 
-        transforms[i] = [float(dx), float(dy), float(da)]
+        transforms[0].append(dx)
+        transforms[1].append(dy)
+        transforms[2].append(da) 
         prev_gray = curr_gray
 
         if i % int(fps+1) == 0:
             print("Frame: " + str(i) +  "/" + str(n_frames) + " - Tracked points : " + str(len(prev_pts)))
 
-        trajectory = np.cumsum(transforms, axis=0)
+    lbd1 = 10000
+    lbd2 = 1000
 
-        xy = trajectory[:, :2]   # dx, dy
-        rot = trajectory[:, 2:]  # da
+    trajectory = np.cumsum(np.array(transforms), axis=1)
 
-        if filter == Filter.MoovingAverage:
-            smooth_xy = videoStabilizationHelper.smoothAverage(xy, moovingRadius)
-            smooth_angle = videoStabilizationHelper.smoothAverage(rot, moovingRadius)
-        elif filter == Filter.Gauss:
-            smooth_xy = videoStabilizationHelper.smoothGauss(xy, gaussRadius, gaussSigma)
-            smooth_angle = videoStabilizationHelper.smoothGauss(rot, gaussRadius, gaussSigma)
-        elif filter == Filter.Savgol:
-            smooth_xy = videoStabilizationHelper.smoothSavgol(xy, savgolWindow, savgolPoly)
-            smooth_angle = videoStabilizationHelper.smoothSavgol(rot, savgolWindow, savgolPoly)
-        elif filter == Filter.LowPass:
-            smooth_xy = videoStabilizationHelper.lowpass(xy)
-            smooth_angle = videoStabilizationHelper.lowpass(rot)
-        else:
-            print("Wrong filter input!")
-            return
+    # Optimal values:
+    fx = cp.Variable(np.size(trajectory[0]))
+    fy = cp.Variable(np.size(trajectory[1]))
+    fa = cp.Variable(np.size(trajectory[2]))
 
-        smooth_trajectory = np.hstack([smooth_xy, smooth_angle])
+    constraints = [cp.abs(fx-trajectory[0]) <= max_translation, 
+                   cp.abs(fy-trajectory[1]) <= max_translation,
+                   cp.abs(fa-trajectory[2]) <= max_rotation]
 
-        difference = smooth_trajectory - trajectory
+    obj = 0																																																																																								
+    for i in range(np.size(trajectory[0])):
+        obj += ( (trajectory[0][i]-fx[i])**2 + (trajectory[1][i]-fy[i])**2 + (trajectory[2][i]-fa[i])**2 )
 
-        difference[:,0] = np.clip(difference[:,0], -max_translation, max_translation)
-        difference[:,1] = np.clip(difference[:,1], -max_translation, max_translation)
-        difference[:,2] = np.clip(difference[:,2], -max_rotation, max_rotation)
+    # DP1
+    for i in range(np.size(trajectory[0])-1):
+        obj += lbd1*(cp.abs(fx[i+1]-fx[i]) + cp.abs(fy[i+1]-fy[i]) + cp.abs(fa[i+1]-fa[i]))
 
-        transform_smooth = transforms + difference
+    # DP2
+    for i in range(np.size(trajectory[0])-2):
+        obj += lbd2*(cp.abs(fx[i+2]-2*fx[i+1]+fx[i]) + cp.abs(fy[i+2]-2*fy[i+1]+fy[i]) + cp.abs(fa[i+2]-2*fa[i+1]+fa[i]))
+
+    prob = cp.Problem(cp.Minimize(obj), constraints)
+    print("Startet solving the optimization problem")
+    prob.solve(solver=cp.ECOS)
+    print("Optimization problem solved")
+
+    smoothTrajectory = np.array([fx.value, fy.value, fa.value])
+    difference = trajectory - smoothTrajectory
+    transform_smooth = transforms - difference
 
     cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
-
     for i in range(n_frames-2):
         success, frame = cap.read()
         if not success:
             break
 
-        dx = transform_smooth[i, 0]
-        dy = transform_smooth[i, 1]
-        da = transform_smooth[i, 2]
+        dx = transform_smooth[0, i]
+        dy = transform_smooth[1, i]
+        da = transform_smooth[2, i]
+
         m = videoStabilizationHelper.calculateM(dx, dy, da)
 
         frame_stabilized = cv2.warpAffine(frame, m, (width, height), borderMode=cv2.BORDER_REFLECT)
@@ -178,8 +171,24 @@ def stabilize(input, output, config, debug=False, feature_detection=featureDetec
 
         writer.write(frame_stabilized)
 
-    videoStabilizationHelper.plotTrajectory(trajectory, smooth_trajectory)
-    
+    labels = ["dx", "dy", "da"]
+    fig, axes = plt.subplots(3, 1, figsize=(14, 10))
+
+    for i in range(3):
+        axes[i].plot(trajectory[i], label="Original", linewidth=1)
+        axes[i].plot(smoothTrajectory[i], label="Smoothed", linewidth=2)
+
+        axes[i].set_title(labels[i])
+        axes[i].set_xlabel("Frame")
+        axes[i].set_ylabel("Value")
+
+        axes[i].grid(True)
+        axes[i].legend()
+
+        plt.tight_layout()
+
+    plt.savefig("optimal_plot.png", dpi=300, bbox_inches="tight")
+
     cap.release()
     writer.release()
 

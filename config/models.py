@@ -1,6 +1,12 @@
 from dataclasses import dataclass, field
 
 @dataclass
+class Config:
+    zoom: float = 1.05
+    max_translation: int = 30
+    max_rotation: float = 0.3
+
+@dataclass
 class featureDetectionConfig:
     max_corners: int = 200
     quality_level: float = 0.01
@@ -16,8 +22,6 @@ class filterConfig:
     gauss_sigma: float = 0.5
     savgol_window: int = 21
     savgol_poly: int = 3
-
-    zoom: float = 1.05
 
 @dataclass
 class fastConfig:
@@ -36,6 +40,9 @@ class orbConfig:
 
 @dataclass
 class pipelineConfig:
+    config: Config = field(
+        default_factory=Config
+    )
     featureDetection: featureDetectionConfig = field(
         default_factory=featureDetectionConfig
     )
