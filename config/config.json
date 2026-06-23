@@ -26,7 +26,7 @@
     "CONFIG":{
         "zoom": 1.05,
         "max_translation": 30,
-        "max_rotation": 0.1
+        "max_rotation": 0.03
     },
 
     "filter":{

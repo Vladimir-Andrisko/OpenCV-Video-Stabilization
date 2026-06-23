@@ -124,19 +124,19 @@ def stabilize(input, output, config, debug=False, feature_detection=featureDetec
 
     obj = 0																																																																																								
     for i in range(np.size(trajectory[0])):
-        obj += ( (trajectory[0][i]-fx[i])**2 + (trajectory[1][i]-fy[i])**2 + (trajectory[2][i]-fa[i])**2 )
+        obj = (cp.sum_squares(fx - trajectory[0]) + cp.sum_squares(fy - trajectory[1]) + cp.sum_squares(fa - trajectory[2]))
 
     # DP1
     for i in range(np.size(trajectory[0])-1):
-        obj += lbd1*(cp.abs(fx[i+1]-fx[i]) + cp.abs(fy[i+1]-fy[i]) + cp.abs(fa[i+1]-fa[i]))
+        obj += lbd1 * (cp.norm1(fx[1:] - fx[:-1]) + cp.norm1(fy[1:] - fy[:-1]) + cp.norm1(fa[1:] - fa[:-1]))
 
     # DP2
     for i in range(np.size(trajectory[0])-2):
-        obj += lbd2*(cp.abs(fx[i+2]-2*fx[i+1]+fx[i]) + cp.abs(fy[i+2]-2*fy[i+1]+fy[i]) + cp.abs(fa[i+2]-2*fa[i+1]+fa[i]))
+        obj += lbd2 * (cp.norm1(fx[2:] - 2*fx[1:-1] + fx[:-2]) + cp.norm1(fy[2:] - 2*fy[1:-1] + fy[:-2]) + cp.norm1(fa[2:] - 2*fa[1:-1] + fa[:-2]))
 
     prob = cp.Problem(cp.Minimize(obj), constraints)
     print("Startet solving the optimization problem")
-    prob.solve(solver=cp.ECOS)
+    prob.solve(solver=cp.OSQP)
     print("Optimization problem solved")
 
     smoothTrajectory = np.array([fx.value, fy.value, fa.value])

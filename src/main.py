@@ -10,8 +10,8 @@ cfg = load_config("config/config.json")
 
 def main():
     print("OpenCV version: " + cv2.__version__)
-    #offVS.stabilize(INPUT_VIDEO, OUTPUT_VIDEO, cfg, feature_detection=offVS.featureDetection.FAST, filter=offVS.Filter.Gauss)
-    optVS.stabilize(INPUT_VIDEO, OUTPUT_VIDEO, cfg, feature_detection=optVS.featureDetection.ORB)
+    offVS.stabilize(INPUT_VIDEO, OUTPUT_VIDEO, cfg, feature_detection=offVS.featureDetection.FAST, filter=offVS.Filter.Gauss)
+    #optVS.stabilize(INPUT_VIDEO, OUTPUT_VIDEO, cfg, feature_detection=optVS.featureDetection.ORB)
 
 if __name__ == "__main__":
     main()
