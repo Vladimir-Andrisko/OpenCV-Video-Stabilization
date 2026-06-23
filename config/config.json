@@ -8,12 +8,28 @@
         "use_harris_detector": false
     },
 
+    "ORBConfig":{
+        "nfeatures": 20,
+        "scaleFactor": 1.2,
+        "nlevels": 8,
+        "edgeThreshold": 31,
+        "firstLevel": 0,
+        "WTA_K": 2,
+        "patchSize": 31,
+        "fastThreshold": 20
+    },
+
     "fast":{
-        "threshold": 75
+        "threshold": 50
     },
 
     "filter":{
         "moving_average_radius": 1,
-        "zoom": 1.04
+        "gauss_radius": 5,
+        "gauss_sigma": 1.5,
+        "savgol_window": 21,
+        "savgol_poly": 3,
+
+        "zoom": 1.1
     }
 }

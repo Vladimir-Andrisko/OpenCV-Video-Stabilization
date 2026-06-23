@@ -4,6 +4,7 @@ from config.models import (
     featureDetectionConfig,
     filterConfig,
     fastConfig,
+    orbConfig,
     pipelineConfig
 )
 
@@ -14,5 +15,6 @@ def load_config(file: str):
     return pipelineConfig(
         featureDetection = featureDetectionConfig(**data.get("featureDetection", {})),
         filter = filterConfig(**data.get("filter", {})),
-        fast = fastConfig(**data.get("fast", {}))
+        fast = fastConfig(**data.get("fast", {})),
+        orb = orbConfig(**data.get("ORBConfig", {}))
     )

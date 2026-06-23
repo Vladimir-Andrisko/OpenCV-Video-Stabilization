@@ -12,11 +12,27 @@ class featureDetectionConfig:
 @dataclass
 class filterConfig:
     moving_average_radius: int = 1
+    gauss_radius: int = 1
+    gauss_sigma: float = 0.5
+    savgol_window: int = 21
+    savgol_poly: int = 3
+
     zoom: float = 1.05
 
 @dataclass
 class fastConfig:
     threshold: int = 25
+
+@dataclass
+class orbConfig:
+    nfeatures: int = 100
+    scaleFactor: float = 1.2
+    nlevels: int = 8
+    edgeThreshold: int = 31
+    firstLevel: int = 0
+    WTA_K: int = 2
+    patchSize: int = 31
+    fastThreshold: int = 20
 
 @dataclass
 class pipelineConfig:
@@ -28,4 +44,7 @@ class pipelineConfig:
     )
     fast: fastConfig = field(
         default_factory=fastConfig
+    )
+    orb: orbConfig = field(
+        default_factory=orbConfig
     )
