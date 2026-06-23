@@ -1,15 +1,15 @@
 {
     "featureDetection":{
-        "max_corners": 10,
-        "quality_level": 0.3,
-        "min_distance": 50.0,
-        "block_size": 9,
+        "max_corners": 75,
+        "quality_level": 0.15,
+        "min_distance": 10.0,
+        "block_size": 3,
         "gradient_size": 3,
         "use_harris_detector": false
     },
 
     "ORBConfig":{
-        "nfeatures": 20,
+        "nfeatures": 1000,
         "scaleFactor": 1.2,
         "nlevels": 8,
         "edgeThreshold": 31,
@@ -20,16 +20,16 @@
     },
 
     "fast":{
-        "threshold": 50
+        "threshold": 75
     },
 
     "filter":{
-        "moving_average_radius": 1,
-        "gauss_radius": 5,
-        "gauss_sigma": 1.5,
-        "savgol_window": 21,
-        "savgol_poly": 3,
+        "moving_average_radius": 25,
+        "gauss_radius": 25,
+        "gauss_sigma": 14,
+        "savgol_window": 33,
+        "savgol_poly": 7,
 
-        "zoom": 1.1
+        "zoom": 1.02
     }
 }

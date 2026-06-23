@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.signal import savgol_filter
+from scipy.signal import savgol_filter, butter, filtfilt
 import matplotlib.pyplot as plt
 import cv2
 
@@ -30,6 +30,7 @@ def gaussianSmoothing(curve, radius, sigma=None):
     curve_smoothed = curve_smoothed[radius:-radius]
 
     return curve_smoothed
+    
 
 def create_kalman():
     kalman = cv2.KalmanFilter(6, 3)
@@ -58,21 +59,21 @@ def create_kalman():
 
 def smoothAverage(trajectory, r):
     smoothed_trajectory = np.copy(trajectory)
-    for i in range(3):
+    for i in range(smoothed_trajectory.shape[1]):
         smoothed_trajectory[:,i] = movingAverage(trajectory[:,i], radius=r)
     
     return smoothed_trajectory
 
 def smoothGauss(trajectory, r, sigma=None):
     smoothed_trajectory = np.copy(trajectory)
-    for i in range(3):
+    for i in range(smoothed_trajectory.shape[1]):
         smoothed_trajectory[:,i] = gaussianSmoothing(trajectory[:,i], radius=r, sigma=sigma)
     
     return smoothed_trajectory
 
 def smoothSavgol(trajectory, window=11, poly=3):
     smoothed_trajectory = np.copy(trajectory)
-    for i in range(3):
+    for i in range(smoothed_trajectory.shape[1]):
         smoothed_trajectory[:, i] = savgol_filter(trajectory[:, i], window_length=window, polyorder=poly, mode='nearest')
 
     return smoothed_trajectory
@@ -82,6 +83,10 @@ def fixBorder(frame, zoom):
     T = cv2.getRotationMatrix2D((s[1]/2, s[0]/2), 0, zoom)
     frame = cv2.warpAffine(frame, T, (s[1], s[0]))
     return frame
+
+def lowpass(x, cutoff=0.1):
+    b, a = butter(2, cutoff, btype='low')
+    return filtfilt(b, a, x, axis=0)
 
 def calculateM(dx, dy, da):
     m = np.zeros((2,3), np.float32)

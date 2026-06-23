@@ -2,7 +2,10 @@ import cv2
 import numpy as np
 from . import videoStabilizationHelper
 from enum import Enum
+
 PRINT_DELAY = 500
+MAX_TRANS = 40
+MAX_ROT = 0.2
 
 class featureDetection(Enum):
     ShiTomasi = 0,
@@ -13,7 +16,8 @@ class Filter(Enum):
     MoovingAverage = 0,
     Gauss = 1,
     Savgol = 2,
-    Kalman = 3
+    Kalman = 3,
+    LowPass = 4
 
 def stabilize(input, output, config, debug=False, feature_detection=featureDetection.ShiTomasi, filter=Filter.MoovingAverage):
     cap = cv2.VideoCapture(input)
@@ -109,7 +113,8 @@ def stabilize(input, output, config, debug=False, feature_detection=featureDetec
         curr_gray = cv2.cvtColor(curr, cv2.COLOR_BGR2GRAY)
 
         curr_pts, status, err = cv2.calcOpticalFlowPyrLK(prev_gray, curr_gray, prev_pts, None)
-        assert curr_pts.shape == prev_pts.shape
+        if curr_pts is None:
+            continue
 
         idx = np.where(status==1)[0]
         prev_pts = prev_pts[idx]
@@ -122,7 +127,6 @@ def stabilize(input, output, config, debug=False, feature_detection=featureDetec
                 debug_points[i].append((x, y))
 
         m, inliers = cv2.estimateAffinePartial2D(prev_pts, curr_pts, method=cv2.RANSAC)
-        # m, inliers = cv2.findHomography(prev_pts, curr_pts, method=cv2.RANSAC)
 
         dx = m[0, 2]
         dy = m[1, 2]
@@ -136,19 +140,35 @@ def stabilize(input, output, config, debug=False, feature_detection=featureDetec
 
         trajectory = np.cumsum(transforms, axis=0)
 
+        xy = trajectory[:, :2]   # dx, dy
+        rot = trajectory[:, 2:]  # da
+
         if filter == Filter.MoovingAverage:
-            smooth_trajectory = videoStabilizationHelper.smoothAverage(trajectory, moovingRadius)
+            smooth_xy = videoStabilizationHelper.smoothAverage(xy, moovingRadius)
+            smooth_angle = videoStabilizationHelper.smoothAverage(rot, moovingRadius)
         elif filter == Filter.Gauss:
-            smooth_trajectory = videoStabilizationHelper.smoothGauss(trajectory, gaussRadius, gaussSigma)
+            smooth_xy = videoStabilizationHelper.smoothGauss(xy, 30, 18.0)
+            smooth_angle = videoStabilizationHelper.smoothGauss(rot, gaussRadius, gaussSigma)
         elif filter == Filter.Savgol:
-            smooth_trajectory = videoStabilizationHelper.smoothSavgol(trajectory, savgolWindow, savgolPoly)
+            smooth_xy = videoStabilizationHelper.smoothSavgol(xy, savgolWindow, savgolPoly)
+            smooth_angle = videoStabilizationHelper.smoothSavgol(rot, savgolWindow, savgolPoly)
         elif filter == Filter.Kalman:
             pass
+        elif filter == Filter.LowPass:
+            smooth_xy = videoStabilizationHelper.lowpass(xy)
+            smooth_angle = videoStabilizationHelper.lowpass(rot)
         else:
             print("Wrong filter input!")
             return
 
+        smooth_trajectory = np.hstack([smooth_xy, smooth_angle])
+
         difference = smooth_trajectory - trajectory
+
+        difference[:,0] = np.clip(difference[:,0], -MAX_TRANS, MAX_TRANS)
+        difference[:,1] = np.clip(difference[:,1], -MAX_TRANS, MAX_TRANS)
+        difference[:,2] = np.clip(difference[:,2], -MAX_ROT, MAX_ROT)
+
         transform_smooth = transforms + difference
 
     cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
@@ -164,7 +184,12 @@ def stabilize(input, output, config, debug=False, feature_detection=featureDetec
 
         m = videoStabilizationHelper.calculateM(dx, dy, da)
 
-        frame_stabilized = cv2.warpAffine(frame, m, (width, height))
+        frame_stabilized = cv2.warpAffine(frame, m, (width, height), borderMode=cv2.BORDER_REFLECT)
+
+        gray = cv2.cvtColor(frame_stabilized, cv2.COLOR_BGR2GRAY)
+        mask = (gray == 0).astype(np.uint8) * 255
+        frame_stabilized = cv2.inpaint(frame_stabilized, mask, 3, cv2.INPAINT_TELEA)
+
         frame_stabilized = videoStabilizationHelper.fixBorder(frame_stabilized, zoom)
  
         if i % PRINT_DELAY == 0:

@@ -5,7 +5,7 @@ from config.loader import load_config
 from matplotlib import pyplot as plt
 
 INPUT_VIDEO = "unstable_videos/eurobot_memristor.mp4"
-OUTPUT_VIDEO = "output/output_test.avi"
+OUTPUT_VIDEO = "output/output_test2.avi"
 cfg = load_config("config/config.json")
 
 def main():
