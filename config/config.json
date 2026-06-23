@@ -9,7 +9,7 @@
     },
 
     "ORBConfig":{
-        "nfeatures": 100,
+        "nfeatures": 150,
         "scaleFactor": 1.4,
         "nlevels": 8,
         "edgeThreshold": 15,
@@ -20,13 +20,19 @@
     },
 
     "fast":{
-        "threshold": 80
+        "threshold": 100
     },
 
-    "CONFIG":{
+    "CONFIG_offline":{
         "zoom": 1.05,
         "max_translation": 40,
         "max_rotation": 0.3
+    },
+
+    "CONFIG_optimal":{
+        "zoom": 1.05,
+        "max_translation": 20,
+        "max_rotation": 0.03
     },
 
     "filter":{

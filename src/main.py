@@ -11,14 +11,14 @@ def main():
 
     for input_video in input_videos:
         output_video = "out_" + input_video
-        stabilize(str(INPUT_DIR+input_video), str(OUTPUT_DIR+output_video), cfg, cfg.feature_type.FAST, cfg.filter_type.Gauss, optimal=True)
+        stabilize(str(INPUT_DIR+input_video), str(OUTPUT_DIR+output_video), cfg, cfg.feature_type.ORB, cfg.filter_type.Gauss, optimal=True)
         
 
 def stabilize(input, output, cfg, feature, filter, optimal=False):
-    print(f"Offline stabilization with: {filter}, filter and {feature} featureDetection")
+    print(f"Offline stabilization of {input} with: {filter}, filter and {feature} featureDetection")
     offVS.stabilize(input, output, cfg, feature_detection=feature, filter=filter)
     if optimal:
-        print(f"Optimal stabilization with: {feature} featureDetection")
+        print(f"Optimal stabilization of {input} with: {feature} featureDetection")
         optVS.stabilize(input, output, cfg, feature_detection=feature)
 
 if __name__ == "__main__":

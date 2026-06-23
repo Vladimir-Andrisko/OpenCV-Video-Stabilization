@@ -45,9 +45,9 @@ def stabilize(input, output, config, feature_detection, debug=False):
     min_distance = config.featureDetection.min_distance
     block_size = config.featureDetection.block_size
 
-    zoom = config.config.zoom
-    max_translation = config.config.max_translation
-    max_rotation = config.config.max_rotation
+    zoom = config.configOptimal.zoom
+    max_translation = config.configOptimal.max_translation
+    max_rotation = config.configOptimal.max_rotation
 
     fast = videoStabilizationHelper.setupFast(config)
     orb = videoStabilizationHelper.setupORB(config)

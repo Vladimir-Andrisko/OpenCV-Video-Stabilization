@@ -13,7 +13,13 @@ class Filter(Enum):
     LowPass = 3
 
 @dataclass
-class Config:
+class Config_offline:
+    zoom: float = 1.05
+    max_translation: int = 30
+    max_rotation: float = 0.3
+
+@dataclass
+class Config_optimal:
     zoom: float = 1.05
     max_translation: int = 30
     max_rotation: float = 0.3
@@ -55,8 +61,11 @@ class pipelineConfig:
     feature_type: Feature = Feature.ShiTomasi
     filter_type: Filter = Filter.MoovingAverage
 
-    config: Config = field(
-        default_factory=Config
+    configOffline: Config_offline = field(
+        default_factory=Config_offline
+    )
+    configOptimal: Config_optimal = field(
+        default_factory=Config_optimal
     )
     featureDetection: featureDetectionConfig = field(
         default_factory=featureDetectionConfig

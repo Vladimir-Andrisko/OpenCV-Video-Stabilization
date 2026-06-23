@@ -1,6 +1,7 @@
 import json
 from config.models import (
-    Config,
+    Config_offline,
+    Config_optimal,
     featureDetectionConfig,
     filterConfig,
     fastConfig,
@@ -13,7 +14,8 @@ def load_config(file: str):
         data = json.load(f)
     
     return pipelineConfig(
-        config = Config(**data.get("CONFIG", {})),
+        configOffline = Config_offline(**data.get("CONFIG_offline", {})),
+        configOptimal = Config_optimal(**data.get("CONFIG_optimal", {})),
         featureDetection = featureDetectionConfig(**data.get("featureDetection", {})),
         filter = filterConfig(**data.get("filter", {})),
         fast = fastConfig(**data.get("fast", {})),

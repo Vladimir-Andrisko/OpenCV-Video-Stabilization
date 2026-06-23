@@ -49,9 +49,9 @@ def stabilize(input, output, config, feature_detection, filter, debug=False):
     savgolWindow = config.filter.savgol_window
     savgolPoly = config.filter.savgol_poly
 
-    zoom = config.config.zoom
-    max_translation = config.config.max_translation
-    max_rotation = config.config.max_rotation
+    zoom = config.configOffline.zoom
+    max_translation = config.configOffline.max_translation
+    max_rotation = config.configOffline.max_rotation
 
     fast = videoStabilizationHelper.setupFast(config)
     orb = videoStabilizationHelper.setupORB(config)
